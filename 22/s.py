@@ -260,18 +260,22 @@ async def io(in_queue, out_queue):
     x, y = 0, 0
     colors = defaultdict(int)   # black by default; 0 = black    1 = white
 
+    colors[(x, y)] = 1
+
     painted = set()
 
     while True:
         await in_queue.put(colors[(x, y)])
+
         paint = await out_queue.get()
         if paint is None:
-            return len(painted)
-        turn = await out_queue.get()
-        if turn is None:
-            return len(painted)
+            return colors
         colors[(x, y)] = paint
         painted.add((x, y))
+
+        turn = await out_queue.get()
+        if turn is None:
+            return colors
         d, x, y = update_direction(d, x, y, turn)
 
 
@@ -287,7 +291,22 @@ async def solve():
 
     answer = await task
 
-    print(answer)
+    white = [k for k, v in answer.items() if v == 1]
+    min_x = min([x for x, y in white])
+    max_x = max([x for x, y in white])
+    min_y = min([y for x, y in white])
+    max_y = max([y for x, y in white])
+
+    assert min_x >= 0
+    assert min_y >= 0
+
+    canvas = [[0 for i in range(max_x+1)] for j in range(max_y+1)]
+
+    for x, y in white:
+        canvas[y][x] = 1
+
+    for row in canvas:
+        print(''.join('Q' if c else ' ' for c in row))
 
 
 if __name__ == '__main__':
