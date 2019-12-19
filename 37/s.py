@@ -5,7 +5,7 @@ from collections import defaultdict
 
 
 def get_program():
-    with open('33/input', 'rt') as f:
+    with open('input', 'rt') as f:
         intcode = [int(i.strip()) for i in f.read().strip().split(',')]
 
     intcode_dict = defaultdict(int)
@@ -234,47 +234,37 @@ async def run_program(program, in_queue, out_queue, prog_name=None, signal_for_i
         print(prog_name, 'terminated')
 
 
-async def io(in_queue, out_queue):
-    loop = asyncio.get_running_loop()
-
-    async def write_to_stdout():
-        while True:
-            c = await out_queue.get()
-            if c is None:
-                break
-            c = chr(c)
-            print(c, end='', flush=True)
-
-    async def read_from_stdin():
-        while True:
-            line = await loop.run_in_executor(
-                    None,
-                    sys.stdin.readline,
-                    # no params...
-            )
-            for c in line:
-                c = ord(c)
-                await in_queue.put(c)
-
-    asyncio.create_task(write_to_stdout())
-    asyncio.create_task(read_from_stdin())
-
-    #await in_queue.put(thing)
-    #thing = await out_queue.get()
+async def io(in_queue, out_queue, i, j):
+    await in_queue.put(i)
+    await in_queue.put(j)
+    pulled = await out_queue.get()
+    return pulled
 
 
 async def solve():
 
-    program = get_program()
+    s = 0
 
-    in_queue = asyncio.Queue()
-    out_queue = asyncio.Queue()
+    for i in range(0, 50):
+        for j in range(0, 50):
+            program = get_program()
 
-    io_task = asyncio.create_task(io(in_queue, out_queue))
-    prog_task = asyncio.create_task(run_program(program, in_queue, out_queue))
+            in_queue = asyncio.Queue()
+            out_queue = asyncio.Queue()
 
-    _ = await io_task
-    _ = await prog_task
+            io_task = asyncio.create_task(io(in_queue, out_queue, i, j))
+            prog_task = asyncio.create_task(run_program(program, in_queue, out_queue))
+
+            pulled = await io_task
+            _ = await prog_task
+
+            if pulled:
+                s += 1
+
+            print('*' if pulled else ' ', end='')
+        print()
+
+    print('final', s)
 
 
 if __name__ == '__main__':

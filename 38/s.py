@@ -4,12 +4,18 @@ import asyncio
 from collections import defaultdict
 
 
+_INPUT = None
+
+
 def get_program():
-    with open('33/input', 'rt') as f:
-        intcode = [int(i.strip()) for i in f.read().strip().split(',')]
+    global _INPUT
+
+    if _INPUT is None:
+        with open('../37/input', 'rt') as f:
+            _INPUT = [int(i.strip()) for i in f.read().strip().split(',')]
 
     intcode_dict = defaultdict(int)
-    intcode_dict.update({index: code for index, code in enumerate(intcode)})
+    intcode_dict.update({index: code for index, code in enumerate(_INPUT)})
 
     return [intcode_dict, 0]   # code, instruction pointer
 
@@ -234,47 +240,89 @@ async def run_program(program, in_queue, out_queue, prog_name=None, signal_for_i
         print(prog_name, 'terminated')
 
 
-async def io(in_queue, out_queue):
-    loop = asyncio.get_running_loop()
+async def io(in_queue, out_queue, i, j):
+    await in_queue.put(i)
+    await in_queue.put(j)
+    pulled = await out_queue.get()
+    return pulled
 
-    async def write_to_stdout():
-        while True:
-            c = await out_queue.get()
-            if c is None:
-                break
-            c = chr(c)
-            print(c, end='', flush=True)
 
-    async def read_from_stdin():
-        while True:
-            line = await loop.run_in_executor(
-                    None,
-                    sys.stdin.readline,
-                    # no params...
-            )
-            for c in line:
-                c = ord(c)
-                await in_queue.put(c)
+import itertools
+from collections import defaultdict
 
-    asyncio.create_task(write_to_stdout())
-    asyncio.create_task(read_from_stdin())
 
-    #await in_queue.put(thing)
-    #thing = await out_queue.get()
+def gen():
+    yield 0, 0
+    for i in itertools.count(1):
+        for j in range(i):
+            yield i, j
+            yield j, i
+        yield i, i
 
 
 async def solve():
 
-    program = get_program()
+    m = defaultdict(lambda: (0, 0))   # map (x, y) to (len_top, len_left)
 
-    in_queue = asyncio.Queue()
-    out_queue = asyncio.Queue()
+    async def probe(x, y):
+        program = get_program()
 
-    io_task = asyncio.create_task(io(in_queue, out_queue))
-    prog_task = asyncio.create_task(run_program(program, in_queue, out_queue))
+        in_queue = asyncio.Queue()
+        out_queue = asyncio.Queue()
 
-    _ = await io_task
-    _ = await prog_task
+        io_task = asyncio.create_task(io(in_queue, out_queue, x, y))
+        prog_task = asyncio.create_task(run_program(program, in_queue, out_queue))
+
+        pulled = await io_task
+        _ = await prog_task
+
+        top_count = m[(x, y-1)][0] + 1 if pulled else 0
+        left_count = m[(x-1, y)][1] + 1 if pulled else 0
+
+        m[(x, y)] = (top_count, left_count)
+
+        if top_count == 100 and left_count == 100:
+            x -= 99
+            y -= 99
+            print('DONE!', x, y, x * 10000 + y)
+            raise StopIteration('done')
+
+        if top_count > 20 and left_count > 20 and (top_count % 10) == 0 and (left_count % 10) == 0:
+            print(top_count, left_count)
+
+        return pulled
+
+    async def better(x, y):
+        first_y = y
+
+        while True:
+            y = first_y
+            first = True
+
+            while True:
+                pulled = await probe(x, y)
+                if pulled and first:
+                    first_y = y - 1
+                    first = False
+                elif not pulled and not first:
+                    break
+                y += 1
+
+            x += 1
+
+    for x, y in gen():
+        pulled = await probe(x, y)
+
+        top_count, left_count = m[(x, y)]
+
+        if top_count == 5 or left_count == 5:
+            print('Switching to better search method...')
+            try:
+                await better(x, y-6)
+            except StopIteration:
+                break
+
+    print('final', s)
 
 
 if __name__ == '__main__':
