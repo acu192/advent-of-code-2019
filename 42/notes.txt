@@ -17,7 +17,7 @@ CONVERTS TO: (D) and (H or (E and (I or F))) and !(A and B and C)
 
 
 
-
+// This is (H or (E and (I or F))); output to T
 NOT I T
 NOT T T
 NOT F J
@@ -25,11 +25,16 @@ NOT J J
 OR J T
 AND E T
 OR H T
+
+// This is !(A and B and C)
 NOT A J
 NOT J J
 AND B J
 AND C J
 NOT J J
+
+// Final `and`s; tell it to "RUN" :)
 AND T J
 AND D J
 RUN
+

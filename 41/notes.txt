@@ -5,21 +5,21 @@ D = 4 ahead is space ground
 
 HE JUMPS 4 BLOCKS AWAY  (jumps over 3, lands on the 4th)
 
-JUMP IF (D TRUE) AND (A FALSE or B FALSE or C FALSE)
+JUMP IF ((D) and (!A or !B or !C))
 
 
-// This is (A B or C is FALSE)
+// This is (!A or !B or !C); output to T
 NOT A T
 NOT B J
 OR T J
 NOT C T
 OR J T
 
-// This is "D is TRUE" - result in J
+// This is (D); output to J
 NOT D J
 NOT J J
 
-// FINAL OUTPUT
+// Final `and` and command to begin ("walk"):
 AND T J
 WALK
 

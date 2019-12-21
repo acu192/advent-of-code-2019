@@ -1,15 +1,26 @@
 import sys
+import string
 import asyncio
 
 from collections import defaultdict
 
 
+ASCII_OUTPUT = True
+
+
+ASCII_PRINTABLE_INTEGERS = set([ord(c) for c in string.printable])
+
+
 def get_program():
-    with open('input', 'rt') as f:
-        intcode = [int(i.strip()) for i in f.read().strip().split(',')]
+    global _PROGRAM_SOURCE
+
+    try:
+        _PROGRAM_SOURCE
+    except NameError:
+        _PROGRAM_SOURCE = [int(i.strip()) for i in sys.stdin.readline().strip().split(',')]
 
     intcode_dict = defaultdict(int)
-    intcode_dict.update({index: code for index, code in enumerate(intcode)})
+    intcode_dict.update({index: code for index, code in enumerate(_PROGRAM_SOURCE)})
 
     return [intcode_dict, 0]   # code, instruction pointer
 
@@ -242,11 +253,14 @@ async def io(in_queue, out_queue):
             c = await out_queue.get()
             if c is None:
                 break
-            if c > 255:
-                print('\n\nBIG OUTPUT', c, '\n\n')
-                continue
-            c = chr(c)
-            print(c, end='', flush=True)
+            if ASCII_OUTPUT:
+                if c in ASCII_PRINTABLE_INTEGERS:
+                    c = chr(c)
+                    print(c, end='', flush=True)
+                else:
+                    print('\nNON-PRINTABLE OUTPUT:', c, '\n')
+            else:
+                print('OUTPUT:', c)
 
     async def read_from_stdin():
         while True:
@@ -259,8 +273,17 @@ async def io(in_queue, out_queue):
                 c = ord(c)
                 await in_queue.put(c)
 
-    asyncio.create_task(write_to_stdout())
-    asyncio.create_task(read_from_stdin())
+    write_task = asyncio.create_task(write_to_stdout())
+    read_task = asyncio.create_task(read_from_stdin())
+
+    await write_task
+
+    read_task.cancel()
+    try:
+        await read_task
+    except asyncio.CancelledError:
+        # We expect this.
+        pass
 
     #await in_queue.put(thing)
     #thing = await out_queue.get()
@@ -271,7 +294,7 @@ async def solve():
     program = get_program()
 
     in_queue = asyncio.Queue()
-    out_queue = asyncio.Queue()
+    out_queue = asyncio.Queue(maxsize=1)
 
     io_task = asyncio.create_task(io(in_queue, out_queue))
     prog_task = asyncio.create_task(run_program(program, in_queue, out_queue))
