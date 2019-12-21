@@ -5,7 +5,7 @@ import asyncio
 from collections import defaultdict
 
 
-ASCII_OUTPUT = True
+ASCII_OUTPUT = False
 
 
 ASCII_PRINTABLE_INTEGERS = set([ord(c) for c in string.printable])
@@ -17,7 +17,11 @@ def get_program():
     try:
         _PROGRAM_SOURCE
     except NameError:
-        _PROGRAM_SOURCE = [int(i.strip()) for i in sys.stdin.readline().strip().split(',')]
+        while True:
+            first_line = sys.stdin.readline()
+            if not first_line.startswith('//'):
+                break
+        _PROGRAM_SOURCE = [int(i.strip()) for i in first_line.strip().split(',')]
 
     intcode_dict = defaultdict(int)
     intcode_dict.update({index: code for index, code in enumerate(_PROGRAM_SOURCE)})
