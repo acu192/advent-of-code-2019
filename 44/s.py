@@ -44,25 +44,35 @@ def modinv(a, m):
     return solution
 
 
-def get_card(interst, lenth, shuffle_steps):
+def get_card(interst, lenth, shuffle_steps, on_demand_modulo=True):
     for step, n in reversed(shuffle_steps):
         if step == 'cut':
             if n < 0:
                 n = lenth + n
             n = lenth - n
-            interst = (lenth + interst - n) % lenth
+            interst = (lenth + interst - n)
+            if on_demand_modulo:
+                interst = interst % lenth
 
         elif step == 'reverse':
             interst = lenth - interst - 1
 
         elif step == 'inc':
             inv = modinv(n, lenth)
-            interst = (interst * inv) % lenth
+            interst = (interst * inv)
+            if on_demand_modulo:
+                interst = interst % lenth
 
     return interst
 
 
 if __name__ == '__main__':
+
+    # This was my first attempt at day 2, to see if there's a cycle in the position of the cards.
+    # But there's not (at least not in the first ~35 million iterations or so...).
+    #
+    # See the Jupyter notebook for the "real" solution which uses SymPy and is somewhat clever.
+
     interst = 2020
     lenth = 119315717514047
     iters = 101741582076661   # !!!
