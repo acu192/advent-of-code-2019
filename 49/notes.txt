@@ -1,0 +1,7 @@
+After reading Reddit about this puzzle, there are two small optimization I could have done (as described by others on Reddit):
+
+1. Gray Code for the brute-force trial of item combinations. Gray Code would minimize the amount of drop/take commands needed to try every combination. Smart!
+
+2. We could eliminate some of the combinations by:
+    - Trying one item at a time, and if the single item is too heavy, you can fully eliminate it.
+    - Trying all items _except one_, and if the robot is too light, you know you need that item.
