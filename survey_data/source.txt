@@ -1,0 +1,1 @@
+https://github.com/jeroenheijmans/advent-of-code-surveys/blob/master/2019/results-sanitzed.json
